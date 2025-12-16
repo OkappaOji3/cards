@@ -2,139 +2,71 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>英単語カード（中学生）</title>
-
+<title>英単語カード</title>
 <style>
-body {
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-  text-align: center;
-  background: #f5f5f5;
-  margin: 0;
-  padding: 20px;
-}
-
+body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; text-align: center; }
 .card {
-  width: 280px;
-  height: 180px;
-  margin: 40px auto;
-  perspective: 1000px;
+  border: 1px solid #ccc;
+  padding: 40px;
+  margin: 20px;
+  font-size: 28px;
 }
-
-.card-inner {
-  width: 100%;
-  height: 100%;
-  transition: transform 0.6s;
-  transform-style: preserve-3d;
-}
-
-.card.flipped .card-inner {
-  transform: rotateY(180deg);
-}
-
-.card-face {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  backface-visibility: hidden;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 26px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.25);
-}
-
-.front {
-  background: #ffffff;
-}
-
-.back {
-  background: #fff7cc;
-  transform: rotateY(180deg);
-}
-
 button {
-  font-size: 16px;
-  padding: 10px 16px;
-  margin: 8px;
-}
-
-input {
-  font-size: 16px;
-  padding: 8px;
-  margin: 4px;
-  width: 40%;
+  font-size: 18px;
+  margin: 10px;
+  padding: 10px 20px;
 }
 </style>
 </head>
-
 <body>
 
 <h2>英単語カード</h2>
 
-<!-- カード -->
-<div class="card" onclick="flipCard()">
-  <div class="card-inner">
-    <div class="card-face front" id="frontText"></div>
-    <div class="card-face back" id="backText"></div>
-  </div>
-</div>
+<div class="card" id="front">読み込み中…</div>
+<div class="card" id="back" onclick="toggle()">答えを見る</div>
 
-<button onclick="nextCard()">次へ ▶</button>
-
-<hr>
-
-<h3>🔧 親用：単語追加</h3>
-<input id="newQ" placeholder="英単語">
-<input id="newA" placeholder="日本語">
-<br>
-<button onclick="addCard()">追加</button>
+<button onclick="next()">次へ</button>
 
 <script>
-// ===== 単語データ =====
-let cards = JSON.parse(localStorage.getItem("cards")) || [
-  { q: "apple", a: "りんご" },
-  { q: "study", a: "勉強する" },
-  { q: "important", a: "重要な" },
-  { q: "because", a: "なぜなら" },
-  { q: "library", a: "図書館" }
-];
+let cards = [];
+let showBack = false;
 
-let index = 0;
+async function loadCSV() {
+  const res = await fetch("english.csv");
+  const text = await res.text();
+  const lines = text.trim().split("\n");
+  const headers = lines.shift().split(",");
 
-const front = document.getElementById("frontText");
-const back = document.getElementById("backText");
-const card = document.querySelector(".card");
-
-function showCard() {
-  front.textContent = cards[index].q;
-  back.textContent = cards[index].a;
-  card.classList.remove("flipped");
+  return lines.map(line => {
+    const values = line.split(",");
+    let obj = {};
+    headers.forEach((h, i) => obj[h.trim()] = values[i].trim());
+    return obj;
+  });
 }
 
-function flipCard() {
-  card.classList.toggle("flipped");
+async function init() {
+  cards = await loadCSV();
+  next();
 }
 
-function nextCard() {
-  index = (index + 1) % cards.length;
-  showCard();
+function next() {
+  showBack = false;
+  const card = cards[Math.floor(Math.random() * cards.length)];
+  document.getElementById("front").textContent = card.word;
+  document.getElementById("back").textContent = "答えを見る";
+  document.getElementById("back").dataset.answer = card.meaning;
 }
 
-function addCard() {
-  const q = document.getElementById("newQ").value.trim();
-  const a = document.getElementById("newA").value.trim();
-  if (!q || !a) return;
-
-  cards.push({ q, a });
-  localStorage.setItem("cards", JSON.stringify(cards));
-
-  document.getElementById("newQ").value = "";
-  document.getElementById("newA").value = "";
-  alert("追加しました");
+function toggle() {
+  if (!showBack) {
+    document.getElementById("back").textContent =
+      document.getElementById("back").dataset.answer;
+    showBack = true;
+  }
 }
 
-showCard();
+init();
 </script>
 
 </body>
